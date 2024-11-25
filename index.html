@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>밀원 정보 지도</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=de90206b122033753e436abda8c58ab7&libraries=services,clusterer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    
     <style>
         #map {
             width: 100%;
@@ -24,12 +24,12 @@
 
     <script>
         // 지도 초기화
-        const map = L.map('map').setView([36.040374, 128.599971], 13); // 초기 중심 좌표
-
-        // OpenStreetMap 타일 추가
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+        const mapContainer = document.getElementById('map'); 
+        const mapOption = {
+            center: new kakao.maps.LatLng(36.040374, 128.599971), // 초기 중심 좌표
+            level: 8 // 지도 확대 수준
+        };
+        const map = new kakao.maps.Map(mapContainer, mapOption);
 
         // CSV 파일 읽기 및 처리
         const csvFilePath = '/reduced_milwon_data.csv'; // 파일 경로 (같은 디렉토리에 위치해야 함)
@@ -41,8 +41,7 @@
             complete: function(results) {
                 const data = results.data;
                 
-
-                // 지도에 데이터 추가
+                // 데이터에서 마커 추가
                 data.forEach(item => {
                     const lat = parseFloat(item['위도']);
                     const lng = parseFloat(item['경도']);
@@ -51,12 +50,26 @@
                     const nectar = item['화밀량'];
 
                     if (!isNaN(lat) && !isNaN(lng)) {
-                        L.marker([lat, lng]).addTo(map)
-                            .bindPopup(
-                                `<b>밀원수종: ${name}</b><br>
-                                 주소: ${address}<br>
-                                 화밀량: ${nectar}`
-                            );
+                        // 마커 생성
+                        const markerPosition = new kakao.maps.LatLng(lat, lng);
+                        const marker = new kakao.maps.Marker({
+                            position: markerPosition
+                        });
+                        
+                        // 마커 클릭 시 팝업 표시
+                        kakao.maps.event.addListener(marker, 'click', function() {
+                            const infowindow = new kakao.maps.InfoWindow({
+                                content: `<div style="padding:5px; width:200px;">
+                                            <b>밀원수종: ${name}</b><br>
+                                            주소: ${address}<br>
+                                            화밀량: ${nectar}
+                                          </div>`
+                            });
+                            infowindow.open(map, marker);
+                        });
+
+                        // 지도에 마커 추가
+                        marker.setMap(map);
                     }
                 });
             },
